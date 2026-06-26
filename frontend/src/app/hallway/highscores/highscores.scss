@@ -6,7 +6,15 @@
   text-align: center;
 }
 
-td {
+.username-col {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10ch;
+}
+
+.timestamp-col {
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }

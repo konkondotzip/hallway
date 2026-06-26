@@ -23,8 +23,8 @@
   </div>
 </ng-template>
 
-<div class="hallway-container">
-  <div class="hallway-stage">
+<div id="hallway-container" class="hallway-container">
+  <div id="hallway-stage" class="hallway-stage" [hidden]="!modalClosed()">
     <ko-stage #stage [config]="configStage">
       <ko-layer>
         <ko-text #fps [config]="configFps" />
@@ -37,17 +37,15 @@
       </ko-layer>
     </ko-stage>
   </div>
-  @if(closeResult()) {
-  <div>
-    <button type="button" class="btn btn-outline-primary toggle-highscores" [class.active]="!hideHighscores()"
-      (click)="collapse.toggle()" [attr.aria-expanded]="!hideHighscores()" aria-controls="collapseExample">
-      Zeige Highscores
-    </button>
-    <div #collapse="ngbCollapse" [(ngbCollapse)]="hideHighscores" [horizontal]="true">
-      <div style="width: 400px">
-        <app-highscores [username]="username" />
-      </div>
-    </div>
-  </div>
-  }
 </div>
+@if(modalClosed()) {
+<div>
+  <button type="button" class="btn btn-outline-primary toggle-highscores" [class.active]="!hideHighscores()"
+    (click)="collapse.toggle()" [attr.aria-expanded]="!hideHighscores()">
+    Zeige Highscores
+  </button>
+  <div #collapse="ngbCollapse" class="highscores" [(ngbCollapse)]="hideHighscores" [horizontal]="true">
+    <app-highscores [username]="username" />
+  </div>
+</div>
+}

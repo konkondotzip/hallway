@@ -8,7 +8,7 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { provideHttpClient } from '@angular/common/http';
-import { provideTimeago, TimeagoCustomFormatter, TimeagoFormatter, TimeagoIntl } from 'ngx-timeago';
+import { provideTimeago, TimeagoClock, TimeagoCustomFormatter, TimeagoDefaultClock, TimeagoFormatter, TimeagoIntl } from 'ngx-timeago';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,7 +18,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideTimeago({
       intl: { provide: TimeagoIntl },
-      formatter: { provide: TimeagoFormatter, useClass: TimeagoCustomFormatter }
+      formatter: { provide: TimeagoFormatter, useClass: TimeagoCustomFormatter },
+      clock: { provide: TimeagoClock, useClass: TimeagoDefaultClock }
     })
   ],
 };
