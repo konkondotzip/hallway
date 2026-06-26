@@ -1,14 +1,53 @@
+<ng-template #setUsername let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title">Nutzernamen eingeben</h4>
+  </div>
+
+  <div class="modal-body">
+    <form #usernameForm="ngForm">
+      <div class="mb-3">
+        @if (usernameInput.invalid && usernameInput.touched) {
+        <label for="usernameInput">Bitte gib einen Nutzernamen ein.</label>
+        }
+        <input class="form-control" name="username" placeholder="Nutzername" [(ngModel)]="username" required
+          #usernameInput="ngModel">
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" [disabled]="usernameForm.invalid"
+      (click)="modal.close(username)">
+      Speichern
+    </button>
+  </div>
+</ng-template>
+
 <div class="hallway-container">
   <div class="hallway-stage">
     <ko-stage #stage [config]="configStage">
       <ko-layer>
         <ko-text #fps [config]="configFps" />
-        <ko-text #gameStatus [config]="configGameStatus" />
+        <ko-text #gameState [config]="configGameStatus" />
+        <ko-text #score [config]="configScore" />
+        <ko-text #levelGui [config]="configLevelGui" />
         <ko-line #level [config]="configLevel" />
         <ko-line #snake [config]="configSnake" />
         <ko-circle #player [config]="configPlayer" />
       </ko-layer>
     </ko-stage>
   </div>
-  <app-highscores />
+  @if(closeResult()) {
+  <div>
+    <button type="button" class="btn btn-outline-primary toggle-highscores" [class.active]="!hideHighscores()"
+      (click)="collapse.toggle()" [attr.aria-expanded]="!hideHighscores()" aria-controls="collapseExample">
+      Zeige Highscores
+    </button>
+    <div #collapse="ngbCollapse" [(ngbCollapse)]="hideHighscores" [horizontal]="true">
+      <div style="width: 400px">
+        <app-highscores [username]="username" />
+      </div>
+    </div>
+  </div>
+  }
 </div>

@@ -2,3 +2,13 @@
 
 /* Importing Bootstrap SCSS file. */
 @use 'bootstrap/scss/bootstrap';
+
+@font-face {
+  font-family: 'EuroScript';
+  src: url('assets/euroscript.ttf');
+}
+
+@font-face {
+  font-family: 'EuroScript Bold';
+  src: url('assets/euroscript_bold.ttf');
+}

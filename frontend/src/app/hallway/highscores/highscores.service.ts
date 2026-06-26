@@ -11,7 +11,7 @@ export class HighscoresService {
     return this.http.get<Highscore[]>(`${apiUrl}/all`);
   }
 
-  addHighscore(h: Highscore) {
+  addHighscore(h: Highscore): Observable<any> {
     return this.http.post(`${apiUrl}/add`, h);
   }
 }

@@ -2,12 +2,14 @@ import { Coordinate2D, u } from "../game-data/constants";
 import { coordsToPoints } from "../game-data/functions";
 
 export class Level {
+  id: number;
   points: number[] = [];
   coords: Coordinate2D[] = [];
   lengths: number[] = [];
   maxLength: number = 0;
 
-  constructor(coords: Coordinate2D[]) {
+  constructor(id: number, coords: Coordinate2D[]) {
+    this.id = id;
     for (let i = 0; i < coords.length - 1; i++) {
       let dx = coords[i + 1].x - coords[i].x;
       let dy = coords[i + 1].y - coords[i].y;
@@ -22,8 +24,8 @@ export class Level {
     if (pos == 0) return 0;
     let check = 0;
     for (let i = 0; i < this.lengths.length; i++) {
-      if (check >= pos) return i;
       check += this.lengths[i];
+      if (check >= pos) return i;
     }
     return this.lengths.length - 1;
   }
@@ -35,7 +37,7 @@ export class Level {
     let segLen = this.lengths[segIdx];
     let prevCornerPos = 0;
     for (let i = 0; i < segIdx; i++) {
-      prevCornerPos += (this.lengths[i - 1] ?? 0);
+      prevCornerPos += (this.lengths[i] ?? 0);
     }
     let prevCornerCoords = this.coords[segIdx];
     let nextCornerCoords = this.coords[segIdx + 1];

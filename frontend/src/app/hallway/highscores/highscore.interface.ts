@@ -3,11 +3,19 @@ export interface RankedHighscore {
   highscore: Highscore;
 }
 
-export interface Highscore {
-  id: number;
+export class Highscore {
+  id?: number;
   name: string;
   timestamp: string;
   score: number;
   level: number;
   difficulty: number;
+
+  constructor(name: string, timestamp: string, score: number, level: number, difficulty: number) {
+    this.name = name;
+    this.timestamp = timestamp;
+    this.score = score;
+    this.level = level;
+    this.difficulty = difficulty;
+  }
 }

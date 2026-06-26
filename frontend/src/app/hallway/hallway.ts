@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, TemplateRef, ViewChild } from '@angular/core';
 import { Circle, CircleConfig } from 'konva/lib/shapes/Circle';
 import { StageConfig } from 'konva/lib/Stage';
 import { CoreShapeComponent, StageComponent } from 'ng2-konva';
@@ -9,10 +9,19 @@ import Konva from 'konva';
 import { AnimationFn, IFrame } from 'konva/lib/types';
 import { Text, TextConfig } from 'konva/lib/shapes/Text';
 import { Highscores } from "./highscores/highscores";
+import { Level } from './game-objects/level';
+import { getLevel } from './game-data/functions';
+import { NgbCollapse, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { FormsModule } from '@angular/forms';
+import { Highscore } from './highscores/highscore.interface';
+import { httpResource, HttpResourceRef } from '@angular/common/http';
+import { apiUrl, HighscoresService } from './highscores/highscores.service';
+import { formatDate } from '@angular/common';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-hallway',
-  imports: [StageComponent, CoreShapeComponent, Highscores],
+  imports: [StageComponent, CoreShapeComponent, Highscores, NgbCollapse, FormsModule],
   templateUrl: './hallway.html',
   styleUrl: './hallway.scss',
   host: {
@@ -21,25 +30,60 @@ import { Highscores } from "./highscores/highscores";
   }
 })
 export class Hallway implements AfterViewInit, OnDestroy {
+  readonly hideHighscores = signal(true);
+  refreshHighscores = signal(0);
+
+  username: string = "";
+  score: number = 0;
+  private modalService = inject(NgbModal);
+  @ViewChild('setUsername') setUsernameElem!: any;
+  readonly closeResult = signal('');
+
   isForwardPressed = false;
   gameState: string = WAITING;
-  currentLevel: number = 0;
-  gameSpeed: number = 1;
+  currentLevel: Level = level1;
+  difficulty: number = 1;
 
-  @ViewChild('player') player!: any;
-  @ViewChild('snake') snake!: any;
-  @ViewChild('gameStatus') gameStatus!: any;
-  @ViewChild('fps') fps!: any;
+  @ViewChild('player') playerElem!: any;
+  @ViewChild('snake') snakeElem!: any;
+  @ViewChild('gameState') gameStateElem!: any;
+  @ViewChild('fps') fpsElem!: any;
+  @ViewChild('level') levelElem!: any;
+  @ViewChild('score') scoreElem!: any;
+  @ViewChild('levelGui') levelGuiElem!: any;
   private animation!: Konva.Animation;
 
-  ngAfterViewInit(): void {
-    const playerElem: Circle = this.player.getNode();
-    const snakeElem: Line = this.snake.getNode();
-    const gameStatusElem: Text = this.gameStatus.getNode();
-    const fpsElem: Text = this.fps.getNode();
-    const elems = { player: playerElem, snake: snakeElem, gameStatus: gameStatusElem, fps: fpsElem };
-    this.animation = new Konva.Animation((frame) => this.updateAnimation(frame, elems)), playerElem.getLayer();
-    this.animation.start();
+  constructor(private highscoreService: HighscoresService) { }
+
+  setUsername(content: TemplateRef<any>) {
+    return this.modalService.open(content, {
+      ariaLabelledBy: 'modal-basic-title',
+      backdrop: 'static',   // verhindert Schließen durch Klick außerhalb
+      keyboard: false       // verhindert ESC
+    }).result;
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    try {
+      const result = await this.setUsername(this.setUsernameElem);
+
+      this.username = result;
+      this.closeResult.set(`Closed with: ${result}`);
+
+      const elems = {
+        player: this.playerElem.getNode(),
+        snake: this.snakeElem.getNode(),
+        gameStatus: this.gameStateElem.getNode(),
+        fps: this.fpsElem.getNode(),
+        level: this.levelElem.getNode(),
+        score: this.scoreElem.getNode(),
+        levelGui: this.levelGuiElem.getNode(),
+      };
+      this.animation = new Konva.Animation(((frame) => this.updateAnimation(frame, elems)), elems.player.getLayer());
+      this.animation.start();
+    } catch (reason) {
+      console.log("Modal geschlossen:", reason);
+    }
   }
 
   ngOnDestroy(): void {
@@ -51,25 +95,52 @@ export class Hallway implements AfterViewInit, OnDestroy {
     this.updateSnake(frame, elems.snake);
     this.updateGameStatus(elems.gameStatus);
     this.updateFps(frame, elems.fps);
+    this.updateScore(elems.score);
+    this.updateLevel(elems.level);
+    this.updateLevelGui(elems.levelGui);
 
     if (player.pos <= snake.pos) {
-      this.gameState = GAME_OVER;
-      this.resetGame();
+      this.gameOver();
     }
   }
 
-  resetGame() {
+  gameOver() {
+    this.gameState = GAME_OVER;
+    let timestamp = new Date().toISOString();
+    let h = new Highscore(this.username, timestamp, this.score, this.currentLevel.id, this.difficulty);
+    console.log(h);
+    this.highscoreService.addHighscore(h).subscribe((response) => {
+      console.log(response);
+    });
+    this.resetGame();
+  }
+
+  resetLevel() {
     player.pos = 10;
     snake.pos = 0;
     snake.draw();
+  }
+
+  resetGame() {
+    this.difficulty = 1;
+    this.currentLevel = level1;
+    this.score = 0;
+    this.resetLevel();
   }
 
   updatePlayer(frame: IFrame, elem: Circle): void {
     const deltaTime = frame.timeDiff;
     if (this.gameState == PLAYING) {
       player.move(this.isForwardPressed, deltaTime);
+      if (player.pos >= this.currentLevel.maxLength) {
+        let nextLevel = getLevel(this.currentLevel.id + 1);
+        this.score += 100;
+        this.currentLevel = nextLevel ?? level1;
+        if (!nextLevel) this.difficulty++;
+        this.resetLevel();
+      }
     }
-    let coords = level1.getXYfromPos(player.pos);
+    let coords = this.currentLevel.getXYfromPos(player.pos);
     elem.x(coords.x * u);
     elem.y(coords.y * u);
     elem.fill(player.color);
@@ -78,8 +149,8 @@ export class Hallway implements AfterViewInit, OnDestroy {
   updateSnake(frame: IFrame, elem: Line): void {
     const deltaTime = frame.timeDiff;
     if (this.gameState == PLAYING) {
-      snake.move(deltaTime, this.gameSpeed);
-      snake.draw(level1);
+      snake.move(deltaTime, this.difficulty);
+      snake.draw(this.currentLevel);
     }
     elem.points(snake.points);
     elem.fill(player.color);
@@ -92,6 +163,18 @@ export class Hallway implements AfterViewInit, OnDestroy {
   updateFps(frame: IFrame, elem: Text) {
     let fps: number = Math.floor(frame.frameRate);
     elem.text(`${fps} fps`);
+  }
+
+  updateLevel(elem: Line) {
+    elem.points(this.currentLevel.points);
+  }
+
+  updateScore(elem: Text) {
+    elem.text(`Score: ${this.score}`)
+  }
+
+  updateLevelGui(elem: Text) {
+    elem.text(`Level ${this.difficulty}-${this.currentLevel.id}`);
   }
 
   public configStage: StageConfig = {
@@ -111,20 +194,41 @@ export class Hallway implements AfterViewInit, OnDestroy {
   }
 
   public configLevel: LineConfig = {
-    points: level1.points,
+    points: this.currentLevel.points,
     stroke: 'black',
     strokeWidth: 1 * u,
   }
 
   public configGameStatus: TextConfig = {
-    text: 'testing'
+    text: 'testing',
+    height: 100 * u,
+    width: 100 * u,
   }
 
   public configFps: TextConfig = {
     text: "0",
+    height: 100 * u,
+    width: 100 * u,
     align: "right",
-    x: 95 * u,
-    y: 0 * u
+  }
+
+  public configScore: TextConfig = {
+    text: `Score: ${this.score}`,
+    height: 100 * u,
+    width: 100 * u,
+    fontSize: 2 * u,
+    verticalAlign: 'bottom',
+    fontFamily: 'EuroScript'
+  }
+
+  public configLevelGui: TextConfig = {
+    text: `Level ${this.difficulty}-${this.currentLevel.id}`,
+    height: 100 * u,
+    width: 100 * u,
+    fontSize: 2 * u,
+    align: 'right',
+    verticalAlign: 'bottom',
+    fontFamily: 'EuroScript'
   }
 
   onKeyDown(event: KeyboardEvent) {

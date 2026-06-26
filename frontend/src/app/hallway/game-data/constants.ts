@@ -20,10 +20,19 @@ const level1Pts: Coordinate2D[] = [
   { x: 10, y: 90 },
   { x: 90, y: 10 },
 ];
+const level2Pts: Coordinate2D[] = [
+  { x: 10, y: 90 },
+  { x: 10, y: 10 },
+  { x: 90, y: 90 },
+  { x: 90, y: 10 },
+]
 const gameOverLevelPts: Coordinate2D[] = [
   { x: 50, y: 90 },
   { x: 50, y: 10 },
 ]
 
-export const level1: Level = new Level(level1Pts);
-export const gameOverLevel: Level = new Level(gameOverLevelPts);
+export const gameOverLevel: Level = new Level(0, gameOverLevelPts);
+export const level1: Level = new Level(1, level1Pts);
+export const level2: Level = new Level(2, level2Pts);
+
+export const levels: Level[] = [level1, level2];
