@@ -14,14 +14,13 @@ public class HighscoreService {
   private HighscoreRepository repository;
 
   public Sort sort = Sort.by(Sort.Direction.DESC, "score", "difficulty", "level", "timestamp");
-  public List<Highscore> unranked;
 
   public HighscoreService(HighscoreRepository repository) {
     this.repository = repository;
-    this.unranked = this.repository.findAll(sort);
   }
 
   public List<RankedHighscore> getTop(Integer limit) {
+    List<Highscore> unranked = this.repository.findAll(sort);
     List<RankedHighscore> ranked = new ArrayList<>();
 
     for (int i = 0; i < limit; i++) {
@@ -33,6 +32,7 @@ public class HighscoreService {
   }
 
   public RankedHighscore getRanking(String name) {
+    List<Highscore> unranked = this.repository.findAll(sort);
     for (int i = 0; i < unranked.size(); i++) {
       Highscore h = unranked.get(i);
 
@@ -45,6 +45,7 @@ public class HighscoreService {
   }
 
   public List<RankedHighscore> getRankingWindow(String name, int window) {
+    List<Highscore> unranked = this.repository.findAll(sort);
     List<RankedHighscore> ranked = new ArrayList<>();
 
     int userIndex = -1;
