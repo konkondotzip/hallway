@@ -1,0 +1,15 @@
+frontend/node_modules/
+frontend/.angular/
+backend/mtj.tmp/
+*/.vscode/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+backend/.gradle
+backend/build/
+backend/bin/
+!gradle-wrapper.jar

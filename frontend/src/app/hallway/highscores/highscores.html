@@ -1,0 +1,28 @@
+@if(highscoresRef.hasValue()) {
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Name</th>
+      <th scope="col">Score</th>
+      <th scope="col">Level</th>
+      <th scope="col">Aufgestellt</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (h of highscoresRef.value(); track h.highscore.id) {
+    <tr>
+      <th scope="row">{{ h.rank }}</th>
+      <td>{{ h.highscore.name }}</td>
+      <td>{{ h.highscore.score }}</td>
+      <td>{{ `${h.highscore.difficulty+1}-${h.highscore.level+1}` }}</td>
+      <td>
+        <div [ngbTooltip]="h.highscore.timestamp | date:'short':'':'DE-de'" placement="start">
+          {{ h.highscore.timestamp | timeago }}
+        </div>
+      </td>
+    </tr>
+    }
+  </tbody>
+</table>
+}

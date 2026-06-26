@@ -1,0 +1,35 @@
+@keyframes rgb {
+  0% {
+    background-color: red;
+  }
+
+  17% {
+    background-color: yellow;
+  }
+
+  33% {
+    background-color: lime;
+  }
+
+  50% {
+    background-color: cyan;
+  }
+
+  66% {
+    background-color: blue;
+  }
+
+  83% {
+    background-color: magenta;
+  }
+
+  100% {
+    background-color: red;
+  }
+}
+
+.sus {
+  animation: rgb 5s linear infinite;
+  text-align: center;
+  font-size: min(70vw, 70vh);
+}

@@ -1,0 +1,14 @@
+<div class="hallway-container">
+  <div class="hallway-stage">
+    <ko-stage #stage [config]="configStage">
+      <ko-layer>
+        <ko-text #fps [config]="configFps" />
+        <ko-text #gameStatus [config]="configGameStatus" />
+        <ko-line #level [config]="configLevel" />
+        <ko-line #snake [config]="configSnake" />
+        <ko-circle #player [config]="configPlayer" />
+      </ko-layer>
+    </ko-stage>
+  </div>
+  <app-highscores />
+</div>
