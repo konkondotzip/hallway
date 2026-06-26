@@ -26,7 +26,8 @@ public class HighscoreService {
     int max = Math.min(unranked.size(), limit);
 
     for (int i = 0; i < max; i++) {
-      RankedHighscore h = new RankedHighscore(unranked.get(i), i + 1, false);
+      boolean last = unranked.size() == i + 1;
+      RankedHighscore h = new RankedHighscore(unranked.get(i), i + 1, last);
       ranked.add(h);
     }
 
