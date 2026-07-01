@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from "@angular/core";
+import { AfterViewInit, Component, Input, OnInit } from "@angular/core";
 import { Highscore, RankedHighscore } from "./highscore.interface";
 import { apiUrl } from "./highscores.service";
 import { httpResource, HttpResourceRef } from "@angular/common/http";
@@ -23,18 +23,15 @@ import { NgbTooltipModule } from "@ng-bootstrap/ng-bootstrap";
     { provide: LOCALE_ID, useValue: 'de-DE' },
   ]
 })
-export class Highscores implements OnInit {
+export class Highscores {
   @Input() username!: string;
 
-  highscoresRef: HttpResourceRef<RankedHighscore[] | undefined> = httpResource(() => `${apiUrl}/top`);
-  userHighscoreRef!: HttpResourceRef<RankedHighscore | undefined>;
+  topHighscoresRef: HttpResourceRef<RankedHighscore[] | undefined> = httpResource(() => `${apiUrl}/top`);
+  userRankingRef!: HttpResourceRef<RankedHighscore[] | undefined>;
 
   constructor(private intl: TimeagoIntl) {
     this.intl.strings = germanStrings;
     this.intl.changes.next();
-    this.userHighscoreRef = httpResource(() => `${apiUrl}/${this.username}`);
-  }
-
-  ngOnInit(): void {
+    this.userRankingRef = httpResource(() => `${apiUrl}/${this.username}/ranking`);
   }
 }

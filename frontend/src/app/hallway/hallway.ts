@@ -1,6 +1,6 @@
-import { AfterViewInit, Component, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, TemplateRef, ViewChild } from '@angular/core';
+import { AfterViewChecked, AfterViewInit, Component, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, TemplateRef, ViewChild } from '@angular/core';
 import { Circle, CircleConfig } from 'konva/lib/shapes/Circle';
-import { StageConfig } from 'konva/lib/Stage';
+import { Stage, StageConfig } from 'konva/lib/Stage';
 import { CoreShapeComponent, StageComponent } from 'ng2-konva';
 import { GAME_OVER, level1, PAUSED, PLAYING, u, WAITING } from './game-data/constants';
 import { Line, LineConfig } from 'konva/lib/shapes/Line';
@@ -10,7 +10,7 @@ import { AnimationFn, IFrame } from 'konva/lib/types';
 import { Text, TextConfig } from 'konva/lib/shapes/Text';
 import { Highscores } from "./highscores/highscores";
 import { Level } from './game-objects/level';
-import { getLevel } from './game-data/functions';
+import { checkPlayerCollision, gameOver, getLevel, updateGame, updateGui, updateLevel, updatePlayer, updateSnake } from './game-data/functions';
 import { NgbCollapse, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { FormsModule } from '@angular/forms';
 import { Highscore } from './highscores/highscore.interface';
@@ -30,6 +30,8 @@ import { Subject } from 'rxjs';
   }
 })
 export class Hallway implements AfterViewInit, OnDestroy {
+  size: number = 700;
+
   readonly hideHighscores = signal(true);
   refreshHighscores = signal(0);
 
@@ -37,13 +39,14 @@ export class Hallway implements AfterViewInit, OnDestroy {
   score: number = 0;
   private modalService = inject(NgbModal);
   @ViewChild('setUsername') setUsernameElem!: any;
-  readonly closeResult = signal('');
+  readonly modalClosed = signal('');
 
   isForwardPressed = false;
   gameState: string = WAITING;
   currentLevel: Level = level1;
   difficulty: number = 1;
 
+  @ViewChild('stage') stageElem!: any;
   @ViewChild('player') playerElem!: any;
   @ViewChild('snake') snakeElem!: any;
   @ViewChild('gameState') gameStateElem!: any;
@@ -53,33 +56,26 @@ export class Hallway implements AfterViewInit, OnDestroy {
   @ViewChild('levelGui') levelGuiElem!: any;
   private animation!: Konva.Animation;
 
-  constructor(private highscoreService: HighscoresService) { }
-
-  setUsername(content: TemplateRef<any>) {
-    return this.modalService.open(content, {
-      ariaLabelledBy: 'modal-basic-title',
-      backdrop: 'static',   // verhindert Schließen durch Klick außerhalb
-      keyboard: false       // verhindert ESC
-    }).result;
-  }
+  constructor(public highscoreService: HighscoresService) { }
 
   async ngAfterViewInit(): Promise<void> {
     try {
       const result = await this.setUsername(this.setUsernameElem);
 
       this.username = result;
-      this.closeResult.set(`Closed with: ${result}`);
+      this.modalClosed.set(`Closed with: ${result}`);
 
       const elems = {
         player: this.playerElem.getNode(),
         snake: this.snakeElem.getNode(),
-        gameStatus: this.gameStateElem.getNode(),
+        gameState: this.gameStateElem.getNode(),
         fps: this.fpsElem.getNode(),
         level: this.levelElem.getNode(),
         score: this.scoreElem.getNode(),
         levelGui: this.levelGuiElem.getNode(),
+        stage: this.stageElem.getNode(),
       };
-      this.animation = new Konva.Animation(((frame) => this.updateAnimation(frame, elems)), elems.player.getLayer());
+      this.animation = new Konva.Animation(((frame) => updateGame(this, frame, elems)), elems.player.getLayer());
       this.animation.start();
     } catch (reason) {
       console.log("Modal geschlossen:", reason);
@@ -90,96 +86,56 @@ export class Hallway implements AfterViewInit, OnDestroy {
     if (this.animation) this.animation.stop();
   }
 
-  updateAnimation(frame: IFrame, elems: any): void {
-    this.updatePlayer(frame, elems.player);
-    this.updateSnake(frame, elems.snake);
-    this.updateGameStatus(elems.gameStatus);
-    this.updateFps(frame, elems.fps);
-    this.updateScore(elems.score);
-    this.updateLevel(elems.level);
-    this.updateLevelGui(elems.levelGui);
+  setUsername(content: TemplateRef<any>) {
+    return this.modalService.open(content, {
+      ariaLabelledBy: 'modal-basic-title',
+      backdrop: 'static',   // verhindert Schließen durch Klick außerhalb
+      keyboard: false       // verhindert ESC
+    }).result;
+  }
 
-    if (player.pos <= snake.pos) {
-      this.gameOver();
+  onKeyDown(event: KeyboardEvent) {
+    if (!this.modalClosed()) return;
+    switch (event.code) {
+      case "Space":
+        event.preventDefault();
+        if (event.repeat) return;
+        if (this.gameState != PLAYING) this.gameState = PLAYING;
+        this.isForwardPressed = true;
+        break;
+      case "Escape":
+        switch (this.gameState) {
+          case PLAYING:
+            this.gameState = PAUSED;
+            break;
+          case PAUSED:
+            this.gameState = PLAYING;
+            break;
+          default:
+            break;
+        };
+        player.velocity = 0;
+        break;
+      default:
+        break;
     }
   }
 
-  gameOver() {
-    this.gameState = GAME_OVER;
-    let timestamp = new Date().toISOString();
-    let h = new Highscore(this.username, timestamp, this.score, this.currentLevel.id, this.difficulty);
-    console.log(h);
-    this.highscoreService.addHighscore(h).subscribe((response) => {
-      console.log(response);
-    });
-    this.resetGame();
-  }
-
-  resetLevel() {
-    player.pos = 10;
-    snake.pos = 0;
-    snake.draw();
-  }
-
-  resetGame() {
-    this.difficulty = 1;
-    this.currentLevel = level1;
-    this.score = 0;
-    this.resetLevel();
-  }
-
-  updatePlayer(frame: IFrame, elem: Circle): void {
-    const deltaTime = frame.timeDiff;
-    if (this.gameState == PLAYING) {
-      player.move(this.isForwardPressed, deltaTime);
-      if (player.pos >= this.currentLevel.maxLength) {
-        let nextLevel = getLevel(this.currentLevel.id + 1);
-        this.score += 100;
-        this.currentLevel = nextLevel ?? level1;
-        if (!nextLevel) this.difficulty++;
-        this.resetLevel();
-      }
+  onKeyUp(event: KeyboardEvent) {
+    if (!this.modalClosed()) return;
+    switch (event.code) {
+      case "Space":
+        event.preventDefault();
+        this.isForwardPressed = false;
+        break;
+      default:
+        break;
     }
-    let coords = this.currentLevel.getXYfromPos(player.pos);
-    elem.x(coords.x * u);
-    elem.y(coords.y * u);
-    elem.fill(player.color);
-  }
-
-  updateSnake(frame: IFrame, elem: Line): void {
-    const deltaTime = frame.timeDiff;
-    if (this.gameState == PLAYING) {
-      snake.move(deltaTime, this.difficulty);
-      snake.draw(this.currentLevel);
-    }
-    elem.points(snake.points);
-    elem.fill(player.color);
-  }
-
-  updateGameStatus(elem: Text) {
-    elem.text(this.gameState);
-  }
-
-  updateFps(frame: IFrame, elem: Text) {
-    let fps: number = Math.floor(frame.frameRate);
-    elem.text(`${fps} fps`);
-  }
-
-  updateLevel(elem: Line) {
-    elem.points(this.currentLevel.points);
-  }
-
-  updateScore(elem: Text) {
-    elem.text(`Score: ${this.score}`)
-  }
-
-  updateLevelGui(elem: Text) {
-    elem.text(`Level ${this.difficulty}-${this.currentLevel.id}`);
   }
 
   public configStage: StageConfig = {
     width: 700,
-    height: 700,
+    height: 700
   };
 
   public configPlayer: CircleConfig = {
@@ -229,44 +185,5 @@ export class Hallway implements AfterViewInit, OnDestroy {
     align: 'right',
     verticalAlign: 'bottom',
     fontFamily: 'EuroScript'
-  }
-
-  onKeyDown(event: KeyboardEvent) {
-    switch (event.code) {
-      case "Space":
-        event.preventDefault();
-        if (event.repeat) return;
-        if (this.gameState != PLAYING) {
-          this.gameState = PLAYING;
-        }
-        this.isForwardPressed = true;
-        break;
-      case "Escape":
-        switch (this.gameState) {
-          case PLAYING:
-            this.gameState = PAUSED;
-            break;
-          case PAUSED:
-            this.gameState = PLAYING;
-            break;
-          default:
-            break;
-        };
-        player.velocity = 0;
-        break;
-      default:
-        break;
-    }
-  }
-
-  onKeyUp(event: KeyboardEvent) {
-    switch (event.code) {
-      case "Space":
-        event.preventDefault();
-        this.isForwardPressed = false;
-        break;
-      default:
-        break;
-    }
   }
 }

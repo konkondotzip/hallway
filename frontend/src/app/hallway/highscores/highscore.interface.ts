@@ -1,5 +1,6 @@
 export interface RankedHighscore {
   rank: number;
+  last: boolean;
   highscore: Highscore;
 }
 

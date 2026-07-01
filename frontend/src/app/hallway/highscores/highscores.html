@@ -1,45 +1,62 @@
-@if(highscoresRef.hasValue()) {
+@if(topHighscoresRef.value(); as th) {
 <table class="table table-striped">
   <thead>
     <tr>
       <th scope="col">#</th>
-      <th scope="col">Name</th>
+      <th class="username-col" scope="col">Name</th>
       <th scope="col">Score</th>
       <th scope="col">Level</th>
       <th scope="col">Aufgestellt</th>
     </tr>
   </thead>
   <tbody>
-    @for (h of highscoresRef.value(); track h.highscore.id) {
+    @for (h of th; track h.highscore.id) {
     <tr [class.user-highscore]="h.highscore.name == username">
       <th scope="row">{{ h.rank }}</th>
-      <td>{{ h.highscore.name }}</td>
+      <td class="username-col">
+        <div [ngbTooltip]="h.highscore.name.length > 8 ? h.highscore.name : null" placement="start"
+          class="username-col">
+          {{ h.highscore.name }}
+        </div>
+      </td>
       <td>{{ h.highscore.score }}</td>
       <td>{{ `${h.highscore.difficulty+1}-${h.highscore.level+1}` }}</td>
       <td>
-        <div [ngbTooltip]="h.highscore.timestamp | date:'short':'':'DE-de'" placement="start">
+        <div class="timestamp-col" [ngbTooltip]="h.highscore.timestamp | date:'short':'':'DE-de'" placement="start">
           {{ h.highscore.timestamp | timeago }}
         </div>
       </td>
     </tr>
     }
-    @if(userHighscoreRef.hasValue() && userHighscoreRef.value() != null) {
-    @if(userHighscoreRef.value().rank > 11) {
-    <tr>
-      <td colspan="5" class="blank-row">⋮</td>
+    @if(userRankingRef.value(); as ur) {
+    @if(ur[0].rank > 11) {
+    <tr class="blank-row">
+      <td colspan="5">⋮</td>
     </tr>
     }
-    @if(userHighscoreRef.value().rank > 10) {
-    <tr class="user-highscore">
-      <th scope="row">{{ userHighscoreRef.value().rank }}</th>
-      <td>{{ userHighscoreRef.value().highscore.name }}</td>
-      <td>{{ userHighscoreRef.value().highscore.score }}</td>
-      <td>{{ `${userHighscoreRef.value().highscore.difficulty+1}-${userHighscoreRef.value().highscore.level}` }}</td>
-      <td>
-        <div [ngbTooltip]="userHighscoreRef.value().highscore.timestamp | date:'short':'':'DE-de'" placement="start">
-          {{ userHighscoreRef.value().highscore.timestamp | timeago }}
+    @for(h of ur; track h.highscore.id) {
+    @if(h.rank > 10) {
+    <tr [class.user-highscore]="h.highscore.name == username">
+      <th scope="row">{{ h.rank }}</th>
+      <td class="username-col">
+        <div [ngbTooltip]="h.highscore.name.length > 8 ? h.highscore.name : null" placement="start"
+          class="username-col">
+          {{ h.highscore.name }}
         </div>
       </td>
+      <td>{{ h.highscore.score }}</td>
+      <td>{{ `${h.highscore.difficulty}-${h.highscore.level}` }}</td>
+      <td>
+        <div class="timestamp-col" [ngbTooltip]="h.highscore.timestamp | date:'short':'':'DE-de'" placement="start">
+          {{ h.highscore.timestamp | timeago }}
+        </div>
+      </td>
+    </tr>
+    }
+    }
+    @if(! ur[ur.length - 1].last) {
+    <tr class="blank-row">
+      <td colspan="5">⋮</td>
     </tr>
     }
     }

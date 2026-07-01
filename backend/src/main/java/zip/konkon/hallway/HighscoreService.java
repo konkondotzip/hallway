@@ -23,8 +23,11 @@ public class HighscoreService {
     List<Highscore> unranked = this.repository.findAll(sort);
     List<RankedHighscore> ranked = new ArrayList<>();
 
-    for (int i = 0; i < limit; i++) {
-      RankedHighscore h = new RankedHighscore(unranked.get(i), i + 1);
+    int max = Math.min(unranked.size(), limit);
+
+    for (int i = 0; i < max; i++) {
+      boolean last = unranked.size() == i + 1;
+      RankedHighscore h = new RankedHighscore(unranked.get(i), i + 1, last);
       ranked.add(h);
     }
 
@@ -37,7 +40,7 @@ public class HighscoreService {
       Highscore h = unranked.get(i);
 
       if (h.getName().equals(name)) {
-        return new RankedHighscore(h, i + 1);
+        return new RankedHighscore(h, i + 1, false);
       }
     }
 
@@ -56,8 +59,9 @@ public class HighscoreService {
       if (h.getName().equals(name)) {
         userIndex = i;
       }
-
-      ranked.add(new RankedHighscore(h, i + 1));
+      
+      boolean last = unranked.size() == i + 1;
+      ranked.add(new RankedHighscore(h, i + 1, last));
     }
 
     if (userIndex == -1) {
